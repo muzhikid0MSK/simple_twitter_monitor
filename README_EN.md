@@ -4,9 +4,9 @@ English | [中文](README.md)
 
 A powerful Twitter account monitoring program that supports multi-platform operation and multiple email service providers. It can monitor new posts from specified Twitter accounts and send notifications through various email services. (It doesn't use the Twitter's API)
 
-## 🌟 New Features
+## 🌟 Features
 
-- 🌍 **Multi-Platform Support**: Windows, Linux, macOS
+- 🌍 **Multi-Platform Support**: Windows, Linux
 - 📧 **Multiple Email Service Providers**: Support for 163, QQ, Gmail, Outlook, Yahoo, etc.
 - 🌐 **Internationalization Support**: Chinese and English interfaces
 - 📦 **One-Click Packaging**: Support for PyInstaller packaging as executable files
@@ -33,7 +33,7 @@ A powerful Twitter account monitoring program that supports multi-platform opera
 1. **Clone or download the project**
    ```bash
    git clone https://github.com/muzhikid0MSK/simple_twitter_monitor.git
-   cd twitter-monitor
+   cd simple_twitter_monitor
    ```
 
 2. **Install dependencies**
