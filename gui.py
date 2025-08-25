@@ -5,6 +5,7 @@ GUI界面模块
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import threading
+import time
 from datetime import datetime
 from config_manager import ConfigManager
 from twitter_monitor import TwitterMonitor
@@ -39,12 +40,220 @@ class TwitterMonitorGUI:
         self.monitor_thread = None
         self.is_monitoring = False
         
+        # 心跳监控相关
+        self.heartbeat_thread = None
+        self.heartbeat_running = False
+        self.last_heartbeat = time.time()
+        self.heartbeat_interval = 30  # 心跳间隔（秒）
+        self.error_count = 0  # 错误计数
+        self.max_errors = 3  # 最大错误次数
+        
         # 创建界面
         self.create_widgets()
         
         # 加载配置
         self.load_config()
         
+        # 启动心跳监控
+        self.start_heartbeat()
+        
+        # 设置初始心跳状态显示
+        self._update_heartbeat_display()
+    
+    def start_heartbeat(self):
+        """启动心跳监控线程"""
+        if not self.heartbeat_running:
+            self.heartbeat_running = True
+            self.heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
+            self.heartbeat_thread.start()
+            self.log("💓 心跳监控已启动")
+    
+    def stop_heartbeat(self):
+        """停止心跳监控线程"""
+        self.heartbeat_running = False
+        if self.heartbeat_thread:
+            self.heartbeat_thread.join(timeout=1)
+        self.log("💓 心跳监控已停止")
+    
+    def _heartbeat_loop(self):
+        """心跳监控主循环"""
+        while self.heartbeat_running:
+            try:
+                # 检查程序状态
+                self._check_program_health()
+                
+                # 更新心跳时间
+                self.last_heartbeat = time.time()
+                
+                # 记录心跳状态
+                if self.is_monitoring:
+                    self.log("💓 心跳正常 - 监控运行中")
+                else:
+                    self.log("💓 心跳正常 - 程序待机")
+                
+                # 重置错误计数
+                self.error_count = 0
+                
+                # 更新界面显示
+                self.root.after(0, self._update_heartbeat_display)
+                
+                # 等待下次心跳
+                time.sleep(self.heartbeat_interval)
+                
+            except Exception as e:
+                self.error_count += 1
+                error_msg = f"心跳检查出错: {str(e)}"
+                self.log(f"❌ {error_msg}")
+                
+                # 如果错误次数过多，发送紧急通知
+                if self.error_count >= self.max_errors:
+                    self._send_emergency_notification(error_msg)
+                
+                # 更新界面显示
+                self.root.after(0, self._update_heartbeat_display)
+                
+                # 等待一段时间后继续
+                time.sleep(5)
+    
+    def _check_program_health(self):
+        """检查程序健康状态"""
+        current_time = time.time()
+        
+        # 检查监控线程是否还在运行
+        if self.is_monitoring and self.monitor_thread:
+            if not self.monitor_thread.is_alive():
+                raise Exception("监控线程已停止运行")
+        
+        # 检查心跳间隔是否过长
+        if current_time - self.last_heartbeat > self.heartbeat_interval * 2:
+            raise Exception("心跳间隔异常")
+        
+        # 检查监控器实例状态
+        if self.is_monitoring and self.monitor:
+            if not hasattr(self.monitor, 'monitoring') or not self.monitor.monitoring:
+                raise Exception("监控器状态异常")
+    
+    def _send_emergency_notification(self, error_msg):
+        """发送紧急通知邮件"""
+        try:
+            # 获取邮箱配置
+            smtp_server = self.smtp_server_entry.get().strip()
+            smtp_port = self.smtp_port_entry.get().strip()
+            sender_email = self.sender_email_entry.get().strip()
+            sender_password = self.email_password_entry.get().strip()
+            receiver_email = self.receiver_email_entry.get().strip()
+            
+            if not all([smtp_server, smtp_port, sender_email, sender_password, receiver_email]):
+                self.log("❌ 无法发送紧急通知：邮箱配置不完整")
+                return
+            
+            # 创建邮件发送器
+            email_sender = EmailSender(
+                smtp_server,
+                int(smtp_port),
+                sender_email,
+                sender_password,
+                self.use_ssl_var.get(),
+                self.use_tls_var.get()
+            )
+            
+            # 构建紧急通知内容
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            subject = "🚨 Twitter监控器紧急通知" if self.language == "zh_CN" else "🚨 Twitter Monitor Emergency Alert"
+            
+            body = f"""
+程序异常通知
+
+时间: {current_time}
+错误信息: {error_msg}
+错误次数: {self.error_count}/{self.max_errors}
+程序状态: {'监控中' if self.is_monitoring else '待机'}
+监控账户: {self.username_entry.get().strip() if self.username_entry.get() else '未设置'}
+
+请立即检查程序状态并采取相应措施。
+
+---
+Twitter监控器 v1.0
+            """ if self.language == "zh_CN" else f"""
+Emergency Alert
+
+Time: {current_time}
+Error: {error_msg}
+Error Count: {self.error_count}/{self.max_errors}
+Program Status: {'Monitoring' if self.is_monitoring else 'Standby'}
+Monitored Account: {self.username_entry.get().strip() if self.username_entry.get() else 'Not Set'}
+
+Please check program status immediately and take appropriate action.
+
+---
+Twitter Monitor v1.0
+            """
+            
+            # 发送紧急通知
+            if email_sender.send_notification(
+                receiver_email,
+                "SYSTEM",
+                body,
+                None,
+                subject
+            ):
+                self.log("📧 紧急通知邮件已发送")
+            else:
+                self.log("❌ 紧急通知邮件发送失败")
+                
+        except Exception as e:
+            self.log(f"❌ 发送紧急通知时出错: {str(e)}")
+    
+    def _update_heartbeat_interval(self):
+        """更新心跳间隔（基于监控间隔）"""
+        try:
+            check_interval = int(self.interval_spinbox.get())
+            # 心跳间隔设为监控间隔的一半，但不少于10秒
+            self.heartbeat_interval = max(10, check_interval // 2)
+            self.log(f"💓 心跳间隔已更新为 {self.heartbeat_interval} 秒")
+            
+            # 更新界面显示
+            self._update_heartbeat_display()
+        except:
+            pass
+    
+    def _update_heartbeat_display(self):
+        """更新心跳状态显示"""
+        try:
+            # 更新心跳间隔显示
+            if self.language == "zh_CN":
+                interval_text = f"{self.heartbeat_interval}秒"
+            else:
+                interval_text = f"{self.heartbeat_interval}s"
+            self.heartbeat_interval_label.config(text=interval_text)
+            
+            # 更新心跳状态显示
+            if self.error_count == 0:
+                if self.language == "zh_CN":
+                    status_text = "🟢 正常"
+                    status_color = "green"
+                else:
+                    status_text = "🟢 Normal"
+                    status_color = "green"
+            elif self.error_count < self.max_errors:
+                if self.language == "zh_CN":
+                    status_text = f"🟡 警告 ({self.error_count}/{self.max_errors})"
+                    status_color = "orange"
+                else:
+                    status_text = f"🟡 Warning ({self.error_count}/{self.max_errors})"
+                    status_color = "orange"
+            else:
+                if self.language == "zh_CN":
+                    status_text = f"🔴 异常 ({self.error_count}/{self.max_errors})"
+                    status_color = "red"
+                else:
+                    status_text = f"🔴 Error ({self.error_count}/{self.max_errors})"
+                    status_color = "red"
+            
+            self.heartbeat_status_label.config(text=status_text, fg=status_color)
+        except:
+            pass
+    
     def setup_styles(self):
         """设置界面样式"""
         style = ttk.Style()
@@ -301,6 +510,32 @@ class TwitterMonitorGUI:
         else:
             auto_download_text = "Leave empty for auto-download"
         tk.Label(browser_frame, text=auto_download_text, font=('Arial', 8), fg='gray').pack(anchor=tk.W, pady=(2, 0))
+        
+        # 心跳监控状态区域
+        if self.language == "zh_CN":
+            heartbeat_frame = ttk.LabelFrame(main_frame, text="💓 心跳监控状态", padding=10)
+        else:
+            heartbeat_frame = ttk.LabelFrame(main_frame, text="💓 Heartbeat Monitor Status", padding=10)
+        heartbeat_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # 心跳状态显示
+        heartbeat_status_frame = tk.Frame(heartbeat_frame)
+        heartbeat_status_frame.pack(fill=tk.X)
+        
+        if self.language == "zh_CN":
+            status_label_text = "状态:"
+            interval_label_text = "心跳间隔:"
+        else:
+            status_label_text = "Status:"
+            interval_label_text = "Heartbeat Interval:"
+        
+        tk.Label(heartbeat_status_frame, text=status_label_text).pack(side=tk.LEFT)
+        self.heartbeat_status_label = tk.Label(heartbeat_status_frame, text="🟢 正常", fg="green")
+        self.heartbeat_status_label.pack(side=tk.LEFT, padx=(5, 20))
+        
+        tk.Label(heartbeat_status_frame, text=interval_label_text).pack(side=tk.LEFT)
+        self.heartbeat_interval_label = tk.Label(heartbeat_status_frame, text="30秒")
+        self.heartbeat_interval_label.pack(side=tk.LEFT, padx=(5, 0))
         
         # 按钮区域
         button_frame = tk.Frame(main_frame, bg=self.bg_color)
@@ -641,6 +876,9 @@ class TwitterMonitorGUI:
         
         self.log(f"🚀 开始监控 @{username}")
         
+        # 更新心跳间隔
+        self._update_heartbeat_interval()
+        
         # 获取ChromeDriver路径（如果配置了）
         chrome_driver_path = self.chrome_driver_entry.get().strip()
         if not chrome_driver_path:
@@ -694,12 +932,15 @@ class TwitterMonitorGUI:
                 if self.language == "zh_CN":
                     if messagebox.askokcancel("退出", "监控正在运行，确定要退出吗？"):
                         self.stop_monitoring()
+                        self.stop_heartbeat()
                         self.root.destroy()
                 else:
                     if messagebox.askokcancel("Exit", "Monitoring is running, are you sure you want to exit?"):
                         self.stop_monitoring()
+                        self.stop_heartbeat()
                         self.root.destroy()
             else:
+                self.stop_heartbeat()
                 self.root.destroy()
         
         self.root.protocol("WM_DELETE_WINDOW", on_closing)
