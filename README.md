@@ -4,9 +4,9 @@
 
 一个功能强大的Twitter账户监听程序，支持多平台运行和多邮箱服务商。可以监控指定Twitter账户的新帖子，并通过多种邮箱服务发送通知。（不使用Twitter API）
 
-## 🌟 新特性
+## 🌟 特性
 
-- 🌍 **多平台支持**: Windows、Linux、macOS
+- 🌍 **多平台支持**: Windows、Linux
 - 📧 **多邮箱服务商**: 支持163、QQ、Gmail、Outlook、Yahoo等
 - 🌐 **国际化支持**: 中文和英文界面
 - 📦 **一键打包**: 支持PyInstaller打包为可执行文件
