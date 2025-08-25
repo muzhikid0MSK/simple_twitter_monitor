@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  twitter-monitor:
+    build: .
+    container_name: twitter-monitor
+    restart: unless-stopped
+    environment:
+      - DISPLAY=:99
+      - PYTHONPATH=/app
+    volumes:
+      # 配置文件持久化
+      - ./config.json:/app/config.json
+      # 日志文件持久化
+      - ./logs:/app/logs
+      # Chrome用户数据持久化
+      - chrome-data:/home/twittermonitor/.config/google-chrome
+    ports:
+      - "8080:8080"  # 如果需要Web界面
+    # 如果需要GUI支持，可以挂载X11
+    # volumes:
+    #   - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    # environment:
+    #   - DISPLAY=${DISPLAY}
+    
+  # 可选：添加Chrome浏览器服务
+  chrome:
+    image: selenium/standalone-chrome:latest
+    container_name: chrome-browser
+    restart: unless-stopped
+    environment:
+      - DISPLAY=:99
+    volumes:
+      - /dev/shm:/dev/shm
+    ports:
+      - "4444:4444"
+    shm_size: 2gb
+
+volumes:
+  chrome-data:
+    driver: local

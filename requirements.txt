@@ -1,0 +1,14 @@
+# Twitter监控器依赖包
+
+# Selenium相关
+selenium>=4.15.0
+webdriver-manager>=4.0.1
+
+# 其他工具
+python-dotenv>=1.0.0
+
+# 打包工具
+pyinstaller>=5.0.0
+
+# 网络请求
+requests>=2.25.0
