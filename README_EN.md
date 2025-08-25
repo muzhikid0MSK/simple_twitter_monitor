@@ -1,8 +1,8 @@
-# Twitter Monitor v2.0
+# Twitter Monitor v1.0
 
 English | [中文](README.md)
 
-A powerful Twitter account monitoring program that supports multi-platform operation and multiple email service providers. It can monitor new posts from specified Twitter accounts and send notifications through various email services.
+A powerful Twitter account monitoring program that supports multi-platform operation and multiple email service providers. It can monitor new posts from specified Twitter accounts and send notifications through various email services. (It doesn't use the Twitter's API)
 
 ## 🌟 New Features
 
@@ -32,7 +32,7 @@ A powerful Twitter account monitoring program that supports multi-platform opera
 
 1. **Clone or download the project**
    ```bash
-   git clone https://github.com/yourusername/twitter-monitor.git
+   git clone https://github.com/muzhikid0MSK/simple_twitter_monitor.git
    cd twitter-monitor
    ```
 
@@ -248,7 +248,7 @@ This program is for learning and personal use only. Please comply with Twitter's
 
 ## Author
 
-@muzhikid0MSK
+[@muzhikid0MSK](https://github.com/muzhikid0MSK/)
 
 ## Changelog
 

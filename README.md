@@ -1,8 +1,8 @@
-# Twitter监控器 v2.0
+# Twitter监控器 v1.0
 
 [English](README_EN.md) | 中文
 
-一个功能强大的Twitter账户监听程序，支持多平台运行和多邮箱服务商。可以监控指定Twitter账户的新帖子，并通过多种邮箱服务发送通知。
+一个功能强大的Twitter账户监听程序，支持多平台运行和多邮箱服务商。可以监控指定Twitter账户的新帖子，并通过多种邮箱服务发送通知。（不使用Twitter API）
 
 ## 🌟 新特性
 
@@ -32,7 +32,7 @@
 
 1. **克隆或下载项目**
    ```bash
-   git clone https://github.com/yourusername/twitter-monitor.git
+   git clone https://github.com/muzhikid0MSK/simple_twitter_monitor.git
    cd twitter-monitor
    ```
 
@@ -250,7 +250,7 @@ docker-compose up -d
 
 ## 作者
 
-@muzhikid0MSK
+[@muzhikid0MSK](https://github.com/muzhikid0MSK/)
 
 ## 更新日志
 
