@@ -33,7 +33,7 @@
 1. **克隆或下载项目**
    ```bash
    git clone https://github.com/muzhikid0MSK/simple_twitter_monitor.git
-   cd twitter-monitor
+   cd simple_twitter_monitor
    ```
 
 2. **安装依赖包**
