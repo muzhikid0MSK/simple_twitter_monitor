@@ -14,6 +14,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
+import os
 
 
 class TwitterMonitor:
@@ -45,8 +46,17 @@ class TwitterMonitor:
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         
+        # Linux服务器特定选项
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable-plugins')
+        options.add_argument('--disable-images')
+        options.add_argument('--disable-javascript')
+        options.add_argument('--disable-web-security')
+        options.add_argument('--allow-running-insecure-content')
+        options.add_argument('--disable-features=VizDisplayCompositor')
+        
         # 设置用户代理
-        options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        options.add_argument('user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
         # 无头模式
         if self.headless:
@@ -57,20 +67,79 @@ class TwitterMonitor:
         
         # 创建驱动
         if self.chrome_driver_path:
+            print(f"使用指定的ChromeDriver路径: {self.chrome_driver_path}")
             service = Service(self.chrome_driver_path)
         else:
-            service = Service(ChromeDriverManager().install())
+            print("ChromeDriver路径未指定，尝试自动下载...")
+            try:
+                # 尝试使用webdriver-manager自动下载
+                from webdriver_manager.chrome import ChromeDriverManager
+                driver_path = ChromeDriverManager().install()
+                print(f"ChromeDriver自动下载成功: {driver_path}")
+                service = Service(driver_path)
+            except Exception as e:
+                print(f"自动下载ChromeDriver失败: {e}")
+                print("尝试使用系统默认路径...")
+                
+                # 尝试常见的Linux chromedriver路径
+                common_paths = [
+                    "/usr/bin/chromedriver",
+                    "/usr/local/bin/chromedriver",
+                    "/snap/bin/chromedriver",
+                    "./chromedriver",
+                    "./drivers/chromedriver"
+                ]
+                
+                driver_path = None
+                for path in common_paths:
+                    if os.path.exists(path):
+                        try:
+                            # 检查文件权限
+                            if os.access(path, os.X_OK):
+                                print(f"找到可执行的ChromeDriver: {path}")
+                                driver_path = path
+                                break
+                            else:
+                                print(f"找到ChromeDriver但无执行权限: {path}")
+                                # 尝试添加执行权限
+                                os.chmod(path, 0o755)
+                                if os.access(path, os.X_OK):
+                                    print(f"已添加执行权限: {path}")
+                                    driver_path = path
+                                    break
+                        except Exception as perm_e:
+                            print(f"权限设置失败: {perm_e}")
+                
+                if driver_path:
+                    service = Service(driver_path)
+                else:
+                    raise Exception("无法找到可用的ChromeDriver，请手动安装或指定路径")
         
-        self.driver = webdriver.Chrome(service=service, options=options)
+        try:
+            self.driver = webdriver.Chrome(service=service, options=options)
+            print("✅ Chrome驱动创建成功")
+        except Exception as e:
+            print(f"❌ Chrome驱动创建失败: {e}")
+            # 提供详细的错误信息和解决方案
+            if "chromedriver" in str(e).lower():
+                print("\n可能的解决方案:")
+                print("1. 手动下载ChromeDriver: https://chromedriver.chromium.org/")
+                print("2. 使用包管理器安装: sudo apt-get install chromium-chromedriver")
+                print("3. 检查Chrome浏览器是否已安装: google-chrome --version")
+                print("4. 确保ChromeDriver版本与Chrome浏览器版本匹配")
+            raise
         
         # 执行CDP命令以隐藏自动化特征
-        self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-            'source': '''
-                Object.defineProperty(navigator, 'webdriver', {
-                    get: () => undefined
-                })
-            '''
-        })
+        try:
+            self.driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+                'source': '''
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    })
+                '''
+            })
+        except Exception as e:
+            print(f"⚠️ CDP命令执行失败（非致命错误）: {e}")
     
     def login_with_token(self) -> bool:
         """使用token登录Twitter"""
