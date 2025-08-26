@@ -12,3 +12,9 @@ pyinstaller>=5.0.0
 
 # 网络请求
 requests>=2.25.0
+
+# 系统监控
+psutil>=5.9.0
+
+# Windows服务支持（可选）
+pywin32>=306; sys_platform == "win32"

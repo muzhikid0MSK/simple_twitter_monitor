@@ -1,0 +1,35 @@
+[Unit]
+Description=Twitter Monitor Service
+Documentation=https://github.com/muzhikid0MSK/simple_twitter_monitor
+After=network.target
+
+[Service]
+Type=simple
+User=twitter-monitor
+Group=twitter-monitor
+WorkingDirectory=/opt/twitter-monitor
+ExecStart=/usr/bin/python3 /opt/twitter-monitor/start_server.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=twitter-monitor
+
+# 环境变量
+Environment=PYTHONPATH=/opt/twitter-monitor
+Environment=PYTHONUNBUFFERED=1
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/twitter-monitor/logs /opt/twitter-monitor/config.json
+
+# 资源限制
+LimitNOFILE=65536
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

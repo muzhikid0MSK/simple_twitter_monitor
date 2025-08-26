@@ -50,3 +50,6 @@ temp/
 # OS
 .DS_Store
 Thumbs.db
+HEALTH_MONITORING.md
+SERVER_DEPLOYMENT.md
+README_SERVER.md
